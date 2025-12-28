@@ -32,7 +32,7 @@ class Program
                     CreationCollisionOption.ReplaceExisting
                 );
 
-            // ===== CAMERA INIT =====
+            // ===== CAMERA =====
             var capture = new MediaCapture();
             await capture.InitializeAsync();
 
@@ -46,8 +46,16 @@ class Program
             }
 
             capture.Dispose();
+        }
+        catch
+        {
+            // ❌ Камера очилмади
+            return 10;
+        }
 
-            // ===== WATERMARK =====
+        // ===== WATERMARK (ИХТИЁРИЙ) =====
+        try
+        {
             using (Bitmap bmp = new Bitmap(path))
             using (Graphics g = Graphics.FromImage(bmp))
             {
@@ -61,12 +69,12 @@ class Program
                 g.DrawString(watermarkText, font, brush, x, y);
                 bmp.Save(path, ImageFormat.Jpeg);
             }
-
-            return 0; // OK
         }
-        catch (Exception)
+        catch
         {
-            return 10; // CAMERA NOT AVAILABLE
+            // ⚠️ Watermark чиқмади, лекин расм бор — давом этамиз
         }
+
+        return 0; // ✅ ҲАММАСИ ЯХШИ
     }
 }
