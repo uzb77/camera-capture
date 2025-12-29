@@ -10,14 +10,11 @@ using System.IO;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 
-class Program
-{
-    static async Task<int> Main()
-    {
-        try
-        {
+class Program {
+    static async Task < int > Main() {
+        try {
             // ===== 1. СЕРВЕР ПАПКАСИ =====
-            string folderPath = @"\\server\Camera";
+            string folderPath =  @ "\\server\Camera";
 
             if (!Directory.Exists(folderPath))
                 Directory.CreateDirectory(folderPath);
@@ -35,77 +32,68 @@ class Program
             StorageFile file =
                 await folder.CreateFileAsync(
                     fileName,
-                    CreationCollisionOption.ReplaceExisting
-                );
+                    CreationCollisionOption.ReplaceExisting);
 
             // ===== 4. КАМЕРА =====
             var capture = new MediaCapture();
             await capture.InitializeAsync();
 
-            using (var stream =
-                await file.OpenAsync(FileAccessMode.ReadWrite))
-            {
+            using(var stream =
+                    await file.OpenAsync(FileAccessMode.ReadWrite)) {
                 await capture.CapturePhotoToStreamAsync(
                     ImageEncodingProperties.CreateJpeg(),
-                    stream
-                );
+                    stream);
             }
 
             capture.Dispose();
 
-            // ===== 5. WATERMARK (КУЧАЙТИРИЛГАН, ҲАР ҚАНДАЙ ФОНДА КЎРИНАДИ) =====
-string watermarkText =
-    DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss") +
-    " | PC: " + Environment.MachineName;
-
-using (Bitmap bmp = new Bitmap(fullPath))
-using (Graphics g = Graphics.FromImage(bmp))
-{
-    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-    g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-
-    Font font = new Font(FontFamily.GenericSansSerif, 28, FontStyle.Bold);
-    SizeF textSize = g.MeasureString(watermarkText, font);
-
-    int padding = 20;
-
-    // watermark’ни пастки марказга яқин қиламиз
-    float x = (bmp.Width - textSize.Width) / 2;
-    float y = bmp.Height - textSize.Height - padding * 2;
-
-    // 🔲 ҚАЛИН ҚОРА ФОН
-    using (Brush bg = new SolidBrush(Color.FromArgb(220, 0, 0, 0)))
-    {
-        g.FillRectangle(
-            bg,
-            x - padding,
-            y - padding,
-            textSize.Width + padding * 2,
-            textSize.Height + padding * 2
-        );
-    }
-
-    // ✍ ОҚ ЁЗУВ + СОЯ (SHADOW)
-    using (Brush shadow = new SolidBrush(Color.Black))
-    using (Brush text = new SolidBrush(Color.White))
-    {
-        // соя
-        g.DrawString(watermarkText, font, shadow, x + 2, y + 2);
-        // асосий ёзув
-        g.DrawString(watermarkText, font, text, x, y);
-    }
-
-    bmp.Save(fullPath, ImageFormat.Jpeg);
-}
-
-            // ===== 6. 1С УЧУН ФОТО ЙЎЛИ =====
+            // ===== 5. 1С УЧУН ФОТО ЙЎЛИ =====
             string infoFile = Path.Combine(folderPath, "last_photo.txt");
             File.WriteAllText(infoFile, fullPath);
 
+            // ===== 6. WATERMARK (КУЧАЙТИРИЛГАН, ҲАР ҚАНДАЙ ФОНДА КЎРИНАДИ) =====
+            string watermarkText =
+                DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss") +
+                " | PC: " + Environment.MachineName;
+
+            using(Bitmap bmp = new Bitmap(fullPath))
+            using(Graphics g = Graphics.FromImage(bmp)) {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+
+                Font font = new Font(FontFamily.GenericSansSerif, 28, FontStyle.Bold);
+                SizeF textSize = g.MeasureString(watermarkText, font);
+
+                int padding = 20;
+
+                // watermark’ни пастки марказга яқин қиламиз
+                float x = (bmp.Width - textSize.Width) / 2;
+                float y = bmp.Height - textSize.Height - padding * 2;
+
+                // 🔲 ҚАЛИН ҚОРА ФОН
+                using(Brush bg = new SolidBrush(Color.FromArgb(220, 0, 0, 0))) {
+                    g.FillRectangle(
+                        bg,
+                        x - padding,
+                        y - padding,
+                        textSize.Width + padding * 2,
+                        textSize.Height + padding * 2);
+                }
+
+                // ✍ ОҚ ЁЗУВ + СОЯ (SHADOW)
+                using(Brush shadow = new SolidBrush(Color.Black))
+                using(Brush text = new SolidBrush(Color.White)) {
+                    // соя
+                    g.DrawString(watermarkText, font, shadow, x + 2, y + 2);
+                    // асосий ёзув
+                    g.DrawString(watermarkText, font, text, x, y);
+                }
+
+                bmp.Save(fullPath, ImageFormat.Jpeg);
+            }
+
             return 0; // ҲАММАСИ ЯХШИ
-        }
-        catch
-        {
+        } catch {
             return 10; // ХАТО
         }
     }
