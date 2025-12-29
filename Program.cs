@@ -7,6 +7,8 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 
 class Program
 {
@@ -14,7 +16,7 @@ class Program
     {
         try
         {
-            // ===== 1. САҚЛАШ ПАПКАСИ (СЕРВЕР) =====
+            // ===== 1. СЕРВЕР ПАПКАСИ =====
             string folderPath = @"\\server\Camera";
 
             if (!Directory.Exists(folderPath))
@@ -36,7 +38,7 @@ class Program
                     CreationCollisionOption.ReplaceExisting
                 );
 
-            // ===== 4. КАМЕРАДАН РАСМ ОЛИШ =====
+            // ===== 4. КАМЕРА =====
             var capture = new MediaCapture();
             await capture.InitializeAsync();
 
@@ -51,26 +53,46 @@ class Program
 
             capture.Dispose();
 
-            // ===== 5. WATERMARK =====
-            string watermark =
+            // ===== 5. WATERMARK (ҚОРА ФОН + ОҚ ЁЗУВ) =====
+            string watermarkText =
                 DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss") +
                 " | PC: " + Environment.MachineName;
 
             using (Bitmap bmp = new Bitmap(fullPath))
             using (Graphics g = Graphics.FromImage(bmp))
             {
-                Font font = new Font("Arial", 22, FontStyle.Bold);
-                Brush brush = new SolidBrush(Color.FromArgb(180, Color.White));
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
-                SizeF size = g.MeasureString(watermark, font);
-                float x = bmp.Width - size.Width - 20;
-                float y = bmp.Height - size.Height - 20;
+                Font font = new Font(FontFamily.GenericSansSerif, 22, FontStyle.Bold);
+                SizeF textSize = g.MeasureString(watermarkText, font);
 
-                g.DrawString(watermark, font, brush, x, y);
+                int padding = 10;
+                float x = bmp.Width - textSize.Width - padding * 2;
+                float y = bmp.Height - textSize.Height - padding * 2;
+
+                // ҚОРА ФОН
+                using (Brush bg = new SolidBrush(Color.FromArgb(170, 0, 0, 0)))
+                {
+                    g.FillRectangle(
+                        bg,
+                        x - padding,
+                        y - padding,
+                        textSize.Width + padding * 2,
+                        textSize.Height + padding * 2
+                    );
+                }
+
+                // ОҚ ЁЗУВ
+                using (Brush textBrush = new SolidBrush(Color.White))
+                {
+                    g.DrawString(watermarkText, font, textBrush, x, y);
+                }
+
                 bmp.Save(fullPath, ImageFormat.Jpeg);
             }
 
-            // ===== 6. ФОТО ЙЎЛИНИ 1С УЧУН ЁЗИШ =====
+            // ===== 6. 1С УЧУН ФОТО ЙЎЛИ =====
             string infoFile = Path.Combine(folderPath, "last_photo.txt");
             File.WriteAllText(infoFile, fullPath);
 
@@ -78,7 +100,7 @@ class Program
         }
         catch
         {
-            return 10; // ХАТО (КАМЕРА ЁКИ ЙЎЛ)
+            return 10; // ХАТО
         }
     }
 }
