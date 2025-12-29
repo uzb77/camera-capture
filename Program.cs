@@ -6,38 +6,37 @@ using Windows.Storage;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 
 class Program
 {
-    static async Task<int> Main(string[] args)
+    static async Task<int> Main()
     {
-        if (args.Length < 2)
-            return 1;
-
-        string path = args[0];
-        string watermarkText = args[1];
+        // ===== CONFIG =====
+        string uncFolder = @"\\server\Camera"; // <-- СИЗ СЎРАГАН ЖОЙ
+        string fileName = "photo_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".jpg";
+        string fullPath = Path.Combine(uncFolder, fileName);
 
         try
         {
-            // ===== CREATE FILE =====
-            string folderPath = System.IO.Path.GetDirectoryName(path);
-            string fileName = System.IO.Path.GetFileName(path);
+            // ===== ENSURE FOLDER =====
+            if (!Directory.Exists(uncFolder))
+            {
+                Directory.CreateDirectory(uncFolder);
+            }
 
-            StorageFolder folder =
-                await StorageFolder.GetFolderFromPathAsync(folderPath);
-
-            StorageFile file =
-                await folder.CreateFileAsync(
-                    fileName,
-                    CreationCollisionOption.ReplaceExisting
-                );
+            // ===== CREATE FILE VIA WINRT =====
+            StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(uncFolder);
+            StorageFile file = await folder.CreateFileAsync(
+                fileName,
+                CreationCollisionOption.ReplaceExisting
+            );
 
             // ===== CAMERA =====
             var capture = new MediaCapture();
             await capture.InitializeAsync();
 
-            using (var stream =
-                await file.OpenAsync(FileAccessMode.ReadWrite))
+            using (var stream = await file.OpenAsync(FileAccessMode.ReadWrite))
             {
                 await capture.CapturePhotoToStreamAsync(
                     ImageEncodingProperties.CreateJpeg(),
@@ -46,35 +45,39 @@ class Program
             }
 
             capture.Dispose();
-        }
-        catch
-        {
-            // ❌ Камера очилмади
-            return 10;
-        }
 
-        // ===== WATERMARK (ИХТИЁРИЙ) =====
-        try
-        {
-            using (Bitmap bmp = new Bitmap(path))
+            // ===== WATERMARK =====
+            string watermark =
+                DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss") +
+                " | PC: " + Environment.MachineName;
+
+            using (Bitmap bmp = new Bitmap(fullPath))
             using (Graphics g = Graphics.FromImage(bmp))
             {
-                Font font = new Font("Arial", 24, FontStyle.Bold);
+                Font font = new Font("Arial", 22, FontStyle.Bold);
                 Brush brush = new SolidBrush(Color.FromArgb(180, Color.White));
 
-                SizeF size = g.MeasureString(watermarkText, font);
+                SizeF size = g.MeasureString(watermark, font);
                 float x = bmp.Width - size.Width - 20;
                 float y = bmp.Height - size.Height - 20;
 
-                g.DrawString(watermarkText, font, brush, x, y);
-                bmp.Save(path, ImageFormat.Jpeg);
+                g.DrawString(watermark, font, brush, x, y);
+                bmp.Save(fullPath, ImageFormat.Jpeg);
             }
+
+            return 0; // OK
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return 20; // ACCESS DENIED TO \\server
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return 21; // PATH NOT FOUND
         }
         catch
         {
-            // ⚠️ Watermark чиқмади, лекин расм бор — давом этамиз
+            return 10; // CAMERA OR OTHER ERROR
         }
-
-        return 0; // ✅ ҲАММАСИ ЯХШИ
     }
 }
