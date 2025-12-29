@@ -12,31 +12,36 @@ class Program
 {
     static async Task<int> Main()
     {
-        // ===== CONFIG =====
-        string uncFolder = @"\\server\Camera"; // <-- СИЗ СЎРАГАН ЖОЙ
-        string fileName = "photo_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".jpg";
-        string fullPath = Path.Combine(uncFolder, fileName);
-
         try
         {
-            // ===== ENSURE FOLDER =====
-            if (!Directory.Exists(uncFolder))
-            {
-                Directory.CreateDirectory(uncFolder);
-            }
+            // ===== 1. САҚЛАШ ПАПКАСИ (СЕРВЕР) =====
+            string folderPath = @"\\server\Camera";
 
-            // ===== CREATE FILE VIA WINRT =====
-            StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(uncFolder);
-            StorageFile file = await folder.CreateFileAsync(
-                fileName,
-                CreationCollisionOption.ReplaceExisting
-            );
+            if (!Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
 
-            // ===== CAMERA =====
+            // ===== 2. ФАЙЛ НОМИ =====
+            string fileName =
+                "photo_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".jpg";
+
+            string fullPath = Path.Combine(folderPath, fileName);
+
+            // ===== 3. ФАЙЛ ЯРАТИШ =====
+            StorageFolder folder =
+                await StorageFolder.GetFolderFromPathAsync(folderPath);
+
+            StorageFile file =
+                await folder.CreateFileAsync(
+                    fileName,
+                    CreationCollisionOption.ReplaceExisting
+                );
+
+            // ===== 4. КАМЕРАДАН РАСМ ОЛИШ =====
             var capture = new MediaCapture();
             await capture.InitializeAsync();
 
-            using (var stream = await file.OpenAsync(FileAccessMode.ReadWrite))
+            using (var stream =
+                await file.OpenAsync(FileAccessMode.ReadWrite))
             {
                 await capture.CapturePhotoToStreamAsync(
                     ImageEncodingProperties.CreateJpeg(),
@@ -46,7 +51,7 @@ class Program
 
             capture.Dispose();
 
-            // ===== WATERMARK =====
+            // ===== 5. WATERMARK =====
             string watermark =
                 DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss") +
                 " | PC: " + Environment.MachineName;
@@ -65,19 +70,15 @@ class Program
                 bmp.Save(fullPath, ImageFormat.Jpeg);
             }
 
-            return 0; // OK
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return 20; // ACCESS DENIED TO \\server
-        }
-        catch (DirectoryNotFoundException)
-        {
-            return 21; // PATH NOT FOUND
+            // ===== 6. ФОТО ЙЎЛИНИ 1С УЧУН ЁЗИШ =====
+            string infoFile = Path.Combine(folderPath, "last_photo.txt");
+            File.WriteAllText(infoFile, fullPath);
+
+            return 0; // ҲАММАСИ ЯХШИ
         }
         catch
         {
-            return 10; // CAMERA OR OTHER ERROR
+            return 10; // ХАТО (КАМЕРА ЁКИ ЙЎЛ)
         }
     }
 }
